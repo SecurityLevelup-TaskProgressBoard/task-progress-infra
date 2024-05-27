@@ -4,7 +4,8 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import { readFileSync } from 'fs';
+import { Distribution, OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
+import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 
 export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
@@ -135,13 +136,13 @@ const createS3Bucket = (scope: Construct) => {
     bucketName: 'tpb-web-bucket'
   })
 
- return tpbBucket;
+  return tpbBucket;
 }
 
 const initializeOidcProvider = (scope: Construct, githubOrganisation: string, repoName: string, accountNumber: string) => {
   const provider = new iam.OpenIdConnectProvider(scope, 'MyProvider', {
-  url: 'https://token.actions.githubusercontent.com',
-  clientIds: ['sts.amazonaws.com'],
+    url: 'https://token.actions.githubusercontent.com',
+    clientIds: ['sts.amazonaws.com'],
   });
 
   const GitHubPrincipal = new iam.OpenIdConnectPrincipal(provider).withConditions(
@@ -174,16 +175,33 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
   });
 }
 
+const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket) => {
+  const originAccessIdentity = new OriginAccessIdentity(scope, 'OriginAccessIdentity');
+  bucket.grantRead(originAccessIdentity);
+
+  new Distribution(scope, 'Distribution', {
+    defaultRootObject: 'index.html',
+    defaultBehavior: {
+      origin: new S3Origin(bucket, { originAccessIdentity }),
+    },
+  });
+}
+
 export class TaskProgressInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ExtendedStackProps) {
     super(scope, id, props);
-    
+
     const vpc = createVpc(this);
+
     const ec2Instance = createEC2Instance(this, vpc, props.keyPairName);
+
     const s3Bucket = createS3Bucket(this);
+
     const db = createDBInstance(this, vpc, props.dbUsername, props.dbPort);
+    db.connections.allowFrom(ec2Instance, ec2.Port.tcp(props.dbPort));
+
     initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
-    db.connections.allowFrom(ec2Instance, ec2.Port.tcp(props.dbPort));
+    initializeCloudFrontDistribution(this, s3Bucket);
   }
 }
