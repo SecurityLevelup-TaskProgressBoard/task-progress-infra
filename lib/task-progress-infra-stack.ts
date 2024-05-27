@@ -6,6 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Distribution, OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 
 export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
@@ -13,6 +14,8 @@ export interface ExtendedStackProps extends cdk.StackProps {
   readonly dbPort: number,
   readonly orgName: string,
   readonly repoName: string,
+  readonly domainNames: string[],
+  readonly certificateArn: string,
 }
 
 const createVpc = (construct: Construct): ec2.Vpc => {
@@ -175,11 +178,15 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
   });
 }
 
-const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket) => {
+const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, domainNames: string[], certArn: string) => {
   const originAccessIdentity = new OriginAccessIdentity(scope, 'OriginAccessIdentity');
   bucket.grantRead(originAccessIdentity);
 
   new Distribution(scope, 'Distribution', {
+    domainNames: domainNames,
+    certificate: new Certificate(scope, 'webCert', {
+      domainName: domainNames[0]
+    }),
     defaultRootObject: 'index.html',
     defaultBehavior: {
       origin: new S3Origin(bucket, { originAccessIdentity }),
@@ -202,6 +209,6 @@ export class TaskProgressInfraStack extends cdk.Stack {
 
     initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
-    initializeCloudFrontDistribution(this, s3Bucket);
+    initializeCloudFrontDistribution(this, s3Bucket, props.domainNames, props.certificateArn);
   }
 }
