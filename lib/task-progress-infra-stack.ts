@@ -4,7 +4,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import { Distribution, OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
+import { Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 
@@ -52,7 +52,7 @@ const createEC2Instance = (scope: Construct, vpc: ec2.Vpc, keyPairName: string):
 
   ec2SG.addIngressRule(
     ec2.Peer.anyIpv4(),
-    ec2.Port.tcp(5000),
+    ec2.Port.tcp(5000), //TODO add api port
     'Allow API Requests.'
   );
 
@@ -128,6 +128,7 @@ const createDBInstance = (scope: Construct, vpc: ec2.Vpc, dbUsername: string, po
     removalPolicy: cdk.RemovalPolicy.DESTROY,
     securityGroups: [dbSG],
     instanceIdentifier: `tpb-db`,
+    port: port
   });
 
   return dbInstance;
@@ -188,6 +189,7 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
     defaultRootObject: 'index.html',
     defaultBehavior: {
       origin: new S3Origin(bucket, { originAccessIdentity }),
+      viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS
     },
   });
 }
