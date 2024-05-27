@@ -10,6 +10,8 @@ export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
   readonly dbUsername: string,
   readonly dbPort: number,
+  readonly orgName: string,
+  readonly repoName: string,
 }
 
 const createVpc = (construct: Construct): ec2.Vpc => {
@@ -83,6 +85,7 @@ const createEC2Instance = (scope: Construct, vpc: ec2.Vpc, keyPairName: string):
     instanceId: ec2Instance.instanceId,
   });
 
+  // TODO : add this when creating user data script for EC2.
   // const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
   // ec2Instance.addUserData(userDataScript);
 
@@ -127,20 +130,61 @@ const createDBInstance = (scope: Construct, vpc: ec2.Vpc, dbUsername: string, po
 }
 
 const createS3Bucket = (scope: Construct) => {
-  const bucket = new s3.Bucket(scope, 'tpb-web-bucket', {
-    bucketName: 'tpb-web-bucket',
+  const tpbBucket = new s3.Bucket(scope, "webBucket", {
+    publicReadAccess: true,
+    removalPolicy: cdk.RemovalPolicy.DESTROY,        
+    websiteIndexDocument: "index.html",
+    bucketName: 'tpb-bbd-web-bucket',
+ });
 
-  })
+ return tpbBucket;
+}
+
+const initializeOidcProvider = (scope: Construct, githubOrganisation: string, repoName: string, accountNumber: string) => {
+  const provider = new iam.OpenIdConnectProvider(scope, 'MyProvider', {
+  url: 'https://token.actions.githubusercontent.com',
+  clientIds: ['sts.amazonaws.com'],
+  });
+
+  const GitHubPrincipal = new iam.OpenIdConnectPrincipal(provider).withConditions(
+    {
+      StringLike: {
+        'token.actions.githubusercontent.com:sub':
+          `repo:${githubOrganisation}/${repoName}:*`,
+      },
+    }
+  );
+
+  new iam.Role(scope, 'GitHubActionsRole', {
+    assumedBy: GitHubPrincipal,
+    description:
+      'Role assumed by GitHub actions for CD Runners.',
+    roleName: 'github-actions-role',
+    maxSessionDuration: cdk.Duration.hours(1),
+    inlinePolicies: {
+      CdkDeploymentPolicy: new iam.PolicyDocument({
+        assignSids: true,
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['sts:AssumeRole'],
+            resources: [`arn:aws:iam::${accountNumber}:role/cdk-*`],
+          }),
+        ],
+      }),
+    },
+  });
 }
 
 export class TaskProgressInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ExtendedStackProps) {
     super(scope, id, props);
-
+    
     const vpc = createVpc(this);
     const ec2Instance = createEC2Instance(this, vpc, props.keyPairName);
-    const s3Bucket = createS3Bucket(this);
+    // const s3Bucket = createS3Bucket(this);
     const db = createDBInstance(this, vpc, props.dbUsername, props.dbPort);
+    initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
     db.connections.allowFrom(ec2Instance, ec2.Port.tcp(props.dbPort));
   }

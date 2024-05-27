@@ -1,0 +1,44 @@
+name: Liquibase Deploy Changes
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  liquibase-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Assume the deploy pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        with:
+          role-to-assume: ${{secrets.AWS_SECRET_ASSUME_ROLE}}
+          role-session-name: federatedOIDC-GH-AWS
+          aws-region: ${{secrets.AWS_SECRET_REGION}}
+
+      - name: Retrieve Secrets from AWS Secrets Manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: RDB_SECRET, bookmark-rds-credentials-dev
+
+      - name: Set up environment variables
+        run: |
+          export HOST=$(echo $RDB_SECRET | jq -r '.host')
+          echo USERNAME=$(echo $RDB_SECRET | jq -r '.username') >> $GITHUB_ENV
+          echo PASSWORD=$(echo $RDB_SECRET | jq -r '.password') >> $GITHUB_ENV
+          export PORT=$(echo $RDB_SECRET | jq -r '.port')
+          echo CONNECTION_STRING="jdbc:sqlserver://$HOST:$PORT;databaseName=bookmarkerdb;trustServerCertificate=true;" >> $GITHUB_ENV
+
+      - name: Deploy Database Updates
+        uses: liquibase-github-actions/update@v4.26.0
+        with:
+          changelogFile: "changelog.yaml"
+          url: "${{ env.CONNECTION_STRING }}"
+          username: "${{ env.USERNAME }}"
+          password: "${{ env.PASSWORD }}"
