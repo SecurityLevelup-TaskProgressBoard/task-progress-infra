@@ -108,7 +108,7 @@ const createDBInstance = (scope: Construct, vpc: ec2.Vpc, dbUsername: string, po
     'Allow MSSQL Connections.'
   );
 
-  const dbInstance = new rds.DatabaseInstance(scope, `tpb-db`, {
+  const dbInstance = new rds.DatabaseInstance(scope, `tpb-rds`, {
     vpc: vpc,
     vpcSubnets: {
       subnetType: ec2.SubnetType.PUBLIC,
