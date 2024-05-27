@@ -130,12 +130,9 @@ const createDBInstance = (scope: Construct, vpc: ec2.Vpc, dbUsername: string, po
 }
 
 const createS3Bucket = (scope: Construct) => {
-  const tpbBucket = new s3.Bucket(scope, "webBucket", {
-    publicReadAccess: true,
-    removalPolicy: cdk.RemovalPolicy.DESTROY,        
-    websiteIndexDocument: "index.html",
-    bucketName: 'tpb-bbd-web-bucket',
- });
+  const tpbBucket = new s3.Bucket(scope, 'TpbBucket', {
+    accessControl: s3.BucketAccessControl.PRIVATE,
+  })
 
  return tpbBucket;
 }
@@ -182,7 +179,7 @@ export class TaskProgressInfraStack extends cdk.Stack {
     
     const vpc = createVpc(this);
     const ec2Instance = createEC2Instance(this, vpc, props.keyPairName);
-    // const s3Bucket = createS3Bucket(this);
+    const s3Bucket = createS3Bucket(this);
     const db = createDBInstance(this, vpc, props.dbUsername, props.dbPort);
     initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
