@@ -132,6 +132,7 @@ const createDBInstance = (scope: Construct, vpc: ec2.Vpc, dbUsername: string, po
 const createS3Bucket = (scope: Construct) => {
   const tpbBucket = new s3.Bucket(scope, 'TpbBucket', {
     accessControl: s3.BucketAccessControl.PRIVATE,
+    bucketName: 'tpb-web-bucket'
   })
 
  return tpbBucket;
