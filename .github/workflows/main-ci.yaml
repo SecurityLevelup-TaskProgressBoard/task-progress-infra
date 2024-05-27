@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci-infrastructure:
+    name: Infrastructure CI
+    uses: ./.github/workflows/ci-infra.yaml
+    secrets: inherit
+
+  # ci-liquibase:
+  #     name: Liquibase CI
+  #     needs: ci-infrastructure
+  #     uses: ./.github/workflows/db-ci.yaml
+  #     secrets: inherit

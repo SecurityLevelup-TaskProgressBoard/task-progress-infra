@@ -1,0 +1,23 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cd-infrastructure:
+    name: Infrastructure CD
+    uses: ./.github/workflows/cd-infra.yaml
+    secrets: inherit
+
+  # cd-liquibase:
+  #     name: Liquibase CD
+  #     needs: cd-infrastructure
+  #     uses: ./.github/workflows/db-cd.yaml
+  #     secrets: inherit

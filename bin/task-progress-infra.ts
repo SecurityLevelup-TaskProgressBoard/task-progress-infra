@@ -7,5 +7,7 @@ const app = new cdk.App();
 new TaskProgressInfraStack(app, 'TaskProgressInfraStack', {
   keyPairName: 'tpb-key',
   dbPort: 17388,
-  dbUsername: 'tpb_db_user'
+  dbUsername: 'tpb_db_user',
+  orgName: 'SecurityLevelup-TaskProgressBoard',
+  repoName: 'task-progress-infra'
 });
