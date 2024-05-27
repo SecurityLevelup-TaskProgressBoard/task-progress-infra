@@ -184,9 +184,7 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
 
   new Distribution(scope, 'Distribution', {
     domainNames: domainNames,
-    certificate: new Certificate(scope, 'webCert', {
-      domainName: domainNames[0]
-    }),
+    certificate: Certificate.fromCertificateArn(scope, 'webCert', certArn),
     defaultRootObject: 'index.html',
     defaultBehavior: {
       origin: new S3Origin(bucket, { originAccessIdentity }),
