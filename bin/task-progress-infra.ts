@@ -10,6 +10,6 @@ new TaskProgressInfraStack(app, 'TaskProgressInfraStack', {
   dbUsername: 'tpb_db_user',
   orgName: 'SecurityLevelup-TaskProgressBoard',
   repoName: 'task-progress-infra',
-  domainNames: ['tpb.phipson.co.za'],
-  certificateArn: 'arn:aws:acm:us-east-1:978251882572:certificate/04effc3d-d3be-486a-9f2a-e3576a329323',
+  domainNames: ['taskify.phipson.co.za'],
+  certificateArn: 'arn:aws:acm:us-east-1:978251882572:certificate/841bcf51-a095-454a-abd2-d312833ee2d6',
 });
