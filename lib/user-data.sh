@@ -30,7 +30,7 @@ database_exists() {
     [[ "$result" -gt 0 ]]
 }
 
-database_name="bookmarkerdb"
+database_name="TaskProgressDB"
 
 if database_exists "$database_name"; then
     echo "Database '$database_name' already exists."
@@ -48,7 +48,7 @@ sudo chown ec2-user:ec2-user /home/ec2-user/server/
 
 echo "====================== Init Server Service ======================"
 
-jwt_token=$(aws secretsmanager get-secret-value --secret-id /bookmark/jwt/key --region eu-west-1 --query SecretString --output text | jq -r '.jwt')
+jwt_token=$(aws secretsmanager get-secret-value --secret-id /tpb/jwt/key --region eu-west-1 --query SecretString --output text | jq -r '.jwt')
 connect_string="Data Source=$host;Initial Catalog=$database_name;User ID=$username;Password=$password;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False"
 
 cat <<CONF | sudo tee /etc/systemd/system/server.conf > /dev/null
