@@ -4,9 +4,11 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
+import { readFileSync } from 'fs';
 
 export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
@@ -89,8 +91,7 @@ const createEC2Instance = (scope: Construct, vpc: ec2.Vpc, keyPairName: string):
     instanceId: ec2Instance.instanceId,
   });
 
-  // TODO : add this when creating user data script for EC2.
-  // const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
+  // const userDataScript = readFileSync('./user-data.sh', 'utf8');
   // ec2Instance.addUserData(userDataScript);
 
   return ec2Instance;
@@ -194,6 +195,76 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
   });
 }
 
+const initializeCognito = (scope: Construct) => {
+  const tpbUserPool = new cognito.UserPool(scope, 'tpbUserPool', {
+    userPoolName: 'tpbUserPool',
+    selfSignUpEnabled: true,
+    signInAliases: {
+      email: true,
+    },
+    autoVerify: {
+      email: true,
+    },
+    standardAttributes: {
+      givenName: {
+        required: true,
+        mutable: true,
+      },
+      familyName: {
+        required: true,
+        mutable: true,
+      }
+    },
+    passwordPolicy: {
+      minLength: 8,
+      requireLowercase: true,
+      requireDigits: true,
+      requireUppercase: false,
+      requireSymbols: false,
+    },
+    accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+  });
+
+  const standardCognitoAttributes = {
+    givenName: true,
+    familyName: true,
+    email: true,
+    emailVerified: true,
+    address: true,
+    birthdate: true,
+    gender: true,
+    phoneNumber: true,
+    phoneNumberVerified: true,
+    profilePicture: true,
+    preferredUsername: true,
+    timezone: true,
+    lastUpdateTime: true,
+  };
+
+  const clientReadAttributes = new cognito.ClientAttributes().withStandardAttributes(standardCognitoAttributes);
+  const clientWriteAttributes = new cognito.ClientAttributes().withStandardAttributes(
+    {
+      ...standardCognitoAttributes,
+      emailVerified: false,
+      phoneNumberVerified: false
+    }
+  );
+
+  const userPoolClient = new cognito.UserPoolClient(scope, 'tpbUserPoolClient', {
+    userPool: tpbUserPool,
+    authFlows: {
+      custom: true,
+      userSrp: true
+    },
+    supportedIdentityProviders: [
+      cognito.UserPoolClientIdentityProvider.COGNITO,
+    ],
+    readAttributes: clientReadAttributes,
+    writeAttributes: clientWriteAttributes,
+  });
+}
+
 export class TaskProgressInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ExtendedStackProps) {
     super(scope, id, props);
@@ -210,5 +281,7 @@ export class TaskProgressInfraStack extends cdk.Stack {
     initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
     initializeCloudFrontDistribution(this, s3Bucket, props.domainNames, props.certificateArn);
+
+    initializeCognito(this);
   }
 }
