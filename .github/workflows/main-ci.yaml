@@ -15,9 +15,3 @@ jobs:
     name: Infrastructure CI
     uses: ./.github/workflows/ci-infra.yaml
     secrets: inherit
-
-  # ci-liquibase:
-  #     name: Liquibase CI
-  #     needs: ci-infrastructure
-  #     uses: ./.github/workflows/db-ci.yaml
-  #     secrets: inherit

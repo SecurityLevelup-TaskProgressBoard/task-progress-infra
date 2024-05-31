@@ -15,9 +15,3 @@ jobs:
     name: Infrastructure CD
     uses: ./.github/workflows/cd-infra.yaml
     secrets: inherit
-
-  # cd-liquibase:
-  #     name: Liquibase CD
-  #     needs: cd-infrastructure
-  #     uses: ./.github/workflows/db-cd.yaml
-  #     secrets: inherit
