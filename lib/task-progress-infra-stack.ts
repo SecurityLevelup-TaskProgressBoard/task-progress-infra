@@ -9,6 +9,8 @@ import { CacheCookieBehavior, CacheHeaderBehavior, CachePolicy, CacheQueryString
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { readFileSync } from 'fs';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import * as targets from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets';
 
 export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
@@ -18,6 +20,7 @@ export interface ExtendedStackProps extends cdk.StackProps {
   readonly repoName: string,
   readonly domainNames: string[],
   readonly certificateArn: string,
+  readonly apiCertArn: string,
 }
 
 const createVpc = (construct: Construct): ec2.Vpc => {
@@ -185,6 +188,11 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
             actions: ['s3:PutObject'],
             resources: [`arn:aws:s3:::tpb-web-bucket/*`],
           }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['ec2:DescribeInstances'],
+            resources: [`*`],
+          }),
         ],
       }),
     },
@@ -288,6 +296,44 @@ const initializeCognito = (scope: Construct) => {
   });
 }
 
+const createLoadBalancer = (scope: Construct, certArn: string, vpc: ec2.IVpc, instance: ec2.Instance) => {
+  const alb = new elbv2.ApplicationLoadBalancer(scope, 'MyALB', {
+    vpc,
+    internetFacing: true,
+  });
+
+  const targetGroup = new elbv2.ApplicationTargetGroup(scope, 'targetGroup', {
+    port: 80,
+    vpc: vpc,
+    targetGroupName: 'tpbTargetGroup',
+    targetType: elbv2.TargetType.INSTANCE,
+    // targets: [new ApplicationLoadBalancer]
+  })
+
+  const httpsListener = alb.addListener('HttpsListener', {
+    port: 443,
+    certificates: [Certificate.fromCertificateArn(scope, 'apiCert', certArn)],
+    defaultAction: elbv2.ListenerAction.forward([new elbv2.ApplicationTargetGroup(scope, 'MyTargetGroup', {
+      vpc,
+      targetType: elbv2.TargetType.INSTANCE,
+      targets: [],
+      port: 80,
+    })]),
+  });
+
+  // Add a listener for HTTP to redirect to HTTPS
+  const httpListener = alb.addListener('HttpListener', {
+    port: 80,
+    defaultAction: elbv2.ListenerAction.redirect({
+      protocol: 'HTTPS',
+      port: '443',
+    }),
+  });
+
+  instance.connections.allowFrom(alb, ec2.Port.tcp(80));
+  instance.connections.allowFrom(alb, ec2.Port.tcp(443));
+}
+
 export class TaskProgressInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ExtendedStackProps) {
     super(scope, id, props);
@@ -295,6 +341,8 @@ export class TaskProgressInfraStack extends cdk.Stack {
     const vpc = createVpc(this);
 
     const ec2Instance = createEC2Instance(this, vpc, props.keyPairName);
+
+    // const abl = createLoadBalancer(this, props.apiCertArn);
 
     const s3Bucket = createS3Bucket(this);
 
