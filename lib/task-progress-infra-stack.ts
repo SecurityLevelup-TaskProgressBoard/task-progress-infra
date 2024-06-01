@@ -91,7 +91,7 @@ const createEC2Instance = (scope: Construct, vpc: ec2.Vpc, keyPairName: string):
     instanceId: ec2Instance.instanceId,
   });
 
-  const userDataScript = readFileSync('./user-data.sh', 'utf8');
+  const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
   ec2Instance.addUserData(userDataScript);
 
   return ec2Instance;
