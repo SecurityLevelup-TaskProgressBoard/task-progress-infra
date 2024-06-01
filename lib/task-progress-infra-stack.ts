@@ -190,7 +190,7 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
           }),
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: ['ec2:DescribeInstances'],
+            actions: ['ec2:DescribeInstances', 'ssm:GetParameter'],
             resources: [`*`],
           }),
         ],
