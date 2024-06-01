@@ -174,6 +174,11 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
             actions: ['sts:AssumeRole'],
             resources: [`arn:aws:iam::${accountNumber}:role/cdk-*`],
           }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['s3:PutObject'],
+            resources: [`arn:aws:s3:::tpb-web-bucket/*`],
+          }),
         ],
       }),
     },
