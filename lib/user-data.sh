@@ -22,11 +22,12 @@ credentials=$(aws secretsmanager get-secret-value --secret-id tpb-rds-credential
 username=$(echo $credentials | jq -r '.username')
 password=$(echo $credentials | jq -r '.password')
 host=$(echo $credentials | jq -r '.host')
+port=$(echo $credentials | jq -r '.port')
 
 database_exists() {
     local database_name="$1"
     local query="SELECT COUNT(*) FROM sys.databases WHERE name = '$database_name'"
-    local result=$(sqlcmd -S "$host" -U "$username" -P "$password" -h -1 -Q "$query")
+    local result=$(sqlcmd -S "$host,$port" -U "$username" -P "$password" -h -1 -Q "$query")
     [[ "$result" -gt 0 ]]
 }
 
@@ -35,8 +36,8 @@ database_name="TaskProgressDB"
 if database_exists "$database_name"; then
     echo "Database '$database_name' already exists."
 else
-    sqlcmd -S "$host" -U "$username" -P "$password" -Q "use master; CREATE DATABASE $database_name;"
-    sqlcmd -S "$host" -U "$username" -P "$password" -Q "use $database_name;"
+    sqlcmd -S "$host,$port" -U "$username" -P "$password" -Q "use master; CREATE DATABASE $database_name;"
+    sqlcmd -S "$host,$port" -U "$username" -P "$password" -Q "use $database_name;"
     echo "Database '$database_name' created."
 fi
 
@@ -48,10 +49,12 @@ sudo chown ec2-user:ec2-user /home/ec2-user/server/
 
 echo "====================== Init Server Service ======================"
 
-connect_string="Data Source=$host;Initial Catalog=$database_name;User ID=$username;Password=$password;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False"
+connect_string="Data Source=$host,$port;Initial Catalog=$database_name;User ID=$username;Password=$password;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False"
 
 cat <<CONF | sudo tee /etc/systemd/system/server.conf > /dev/null
-ConnectionStrings__DefaultConnection="$connect_string"
+ASPNETCORE_ENVIRONMENT=Production
+DB_CONNECTION_STRING="$connect_string"
+ASPNETCORE_URLS=http://0.0.0.0:5000
 CONF
 
 cat <<'SERVICE' | sudo tee /etc/systemd/system/server.service > /dev/null
