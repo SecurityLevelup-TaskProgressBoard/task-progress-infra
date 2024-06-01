@@ -54,8 +54,14 @@ const createEC2Instance = (scope: Construct, vpc: ec2.Vpc, keyPairName: string):
 
   ec2SG.addIngressRule(
     ec2.Peer.anyIpv4(),
-    ec2.Port.tcp(5000), //TODO add api port
+    ec2.Port.tcp(5000),
     'Allow API Requests.'
+  );
+
+  ec2SG.addIngressRule(
+    ec2.Peer.anyIpv4(),
+    ec2.Port.tcp(443),
+    'Allow HTTPS Requests.'
   );
 
   const keyPair = ec2.KeyPair.fromKeyPairName(scope, 'key-pair', keyPairName);
