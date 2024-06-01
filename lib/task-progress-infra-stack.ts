@@ -154,7 +154,7 @@ const initializeOidcProvider = (scope: Construct, githubOrganisation: string, re
     {
       StringLike: {
         'token.actions.githubusercontent.com:sub':
-          `repo:${githubOrganisation}/${repoName}:*`,
+          `repo:${githubOrganisation}/*`,
       },
     }
   );
