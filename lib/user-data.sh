@@ -48,11 +48,9 @@ sudo chown ec2-user:ec2-user /home/ec2-user/server/
 
 echo "====================== Init Server Service ======================"
 
-jwt_token=$(aws secretsmanager get-secret-value --secret-id /tpb/jwt/key --region eu-west-1 --query SecretString --output text | jq -r '.jwt')
 connect_string="Data Source=$host;Initial Catalog=$database_name;User ID=$username;Password=$password;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False"
 
 cat <<CONF | sudo tee /etc/systemd/system/server.conf > /dev/null
-Jwt__Key="$jwt_token"
 ConnectionStrings__DefaultConnection="$connect_string"
 CONF
 
@@ -65,7 +63,7 @@ After=network.target
 EnvironmentFile=/etc/systemd/system/server.conf
 User=ec2-user
 WorkingDirectory=/home/ec2-user/server/
-ExecStart=/usr/bin/dotnet /home/ec2-user/server/Api.dll 
+ExecStart=/usr/bin/dotnet /home/ec2-user/server/Server.dll 
 ExecStop=
 Restart=always
 RestartSec=3
