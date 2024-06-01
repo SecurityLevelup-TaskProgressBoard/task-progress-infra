@@ -5,7 +5,7 @@ import * as rds from 'aws-cdk-lib/aws-rds';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
+import { CacheCookieBehavior, CacheHeaderBehavior, CachePolicy, CacheQueryStringBehavior, Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { readFileSync } from 'fs';
@@ -189,13 +189,25 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
   const originAccessIdentity = new OriginAccessIdentity(scope, 'OriginAccessIdentity');
   bucket.grantRead(originAccessIdentity);
 
+  const cachePolicy = new CachePolicy(scope, 'CachePolicy', {
+    cachePolicyName: 'tpbCachePolicy',
+    comment: 'Custom cache policy for TPB CloudFront distribution',
+    defaultTtl: cdk.Duration.minutes(10),
+    minTtl: cdk.Duration.minutes(10),
+    maxTtl: cdk.Duration.minutes(30),
+    cookieBehavior: CacheCookieBehavior.none(),
+    headerBehavior: CacheHeaderBehavior.none(),
+    queryStringBehavior: CacheQueryStringBehavior.none()
+  });
+
   new Distribution(scope, 'Distribution', {
     domainNames: domainNames,
     certificate: Certificate.fromCertificateArn(scope, 'webCert', certArn),
     defaultRootObject: 'index.html',
     defaultBehavior: {
       origin: new S3Origin(bucket, { originAccessIdentity }),
-      viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS
+      viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cachePolicy
     },
   });
 }
