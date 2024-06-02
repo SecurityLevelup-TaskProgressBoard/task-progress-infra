@@ -21,6 +21,7 @@ export interface ExtendedStackProps extends cdk.StackProps {
   readonly domainNames: string[],
   readonly certificateArn: string,
   readonly apiCertArn: string,
+  readonly loginCertArn: string,
 }
 
 const createVpc = (construct: Construct): ec2.Vpc => {
@@ -226,7 +227,7 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
   });
 }
 
-const initializeCognito = (scope: Construct, domain: string, certArn: string) => {
+const initializeCognito = (scope: Construct, loginDomain: string, certLoginArnArn: string) => {
   const tpbUserPool = new cognito.UserPool(scope, 'tpbUserPool', {
     userPoolName: 'tpbUserPool',
     selfSignUpEnabled: true,
@@ -302,8 +303,8 @@ const initializeCognito = (scope: Construct, domain: string, certArn: string) =>
   const userDomain = new cognito.UserPoolDomain(scope, 'UserPoolDomain', {
     userPool: tpbUserPool,
     customDomain: {
-      domainName: domain,
-      certificate: Certificate.fromCertificateArn(scope, 'userPoolCert', certArn),
+      domainName: loginDomain,
+      certificate: Certificate.fromCertificateArn(scope, 'userPoolCert', certLoginArnArn),
     },
   });
 }
@@ -365,6 +366,6 @@ export class TaskProgressInfraStack extends cdk.Stack {
 
     initializeCloudFrontDistribution(this, s3Bucket, props.domainNames, props.certificateArn);
 
-    initializeCognito(this, props.domainNames[0], props.certificateArn);
+    initializeCognito(this, props.domainNames[1], props.loginCertArn);
   }
 }
