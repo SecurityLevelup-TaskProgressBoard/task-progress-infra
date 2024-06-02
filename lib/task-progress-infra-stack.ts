@@ -240,8 +240,6 @@ const initializeApiCloudFrontDistribution = (scope: Construct, ec2: ec2.Instance
     defaultTtl: cdk.Duration.seconds(0),
     maxTtl: cdk.Duration.seconds(0),
     minTtl: cdk.Duration.seconds(0),
-    enableAcceptEncodingBrotli: true,
-    enableAcceptEncodingGzip: true,
     cookieBehavior: cloudfront.CacheCookieBehavior.none(),
     headerBehavior: cloudfront.CacheHeaderBehavior.none(),
     cachePolicyName: 'ApiCachePolicy',
