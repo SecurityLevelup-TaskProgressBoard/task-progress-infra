@@ -302,10 +302,9 @@ const initializeCognito = (scope: Construct, loginDomain: string, certLoginArnAr
 
   const userDomain = new cognito.UserPoolDomain(scope, 'UserPoolDomain', {
     userPool: tpbUserPool,
-    customDomain: {
-      domainName: loginDomain,
-      certificate: Certificate.fromCertificateArn(scope, 'userPoolCert', certLoginArnArn),
-    },
+    cognitoDomain: {
+      domainPrefix: 'login.taskify',
+    }
   });
 }
 
