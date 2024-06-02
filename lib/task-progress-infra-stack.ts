@@ -21,7 +21,6 @@ export interface ExtendedStackProps extends cdk.StackProps {
   readonly domainNames: string[],
   readonly certificateArn: string,
   readonly apiCertArn: string,
-  readonly loginCertArn: string,
 }
 
 const createVpc = (construct: Construct): ec2.Vpc => {
