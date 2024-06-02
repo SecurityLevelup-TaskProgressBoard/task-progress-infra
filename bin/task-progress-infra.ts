@@ -12,5 +12,5 @@ new TaskProgressInfraStack(app, 'TaskProgressInfraStack', {
   repoName: 'task-progress-infra',
   domainNames: ['taskify.phipson.co.za'],
   certificateArn: 'arn:aws:acm:us-east-1:978251882572:certificate/841bcf51-a095-454a-abd2-d312833ee2d6',
-  apiCertArn: 'arn:aws:acm:us-east-1:978251882572:certificate/551964f2-ac30-48d2-b67c-05f61a5cba11',
+  apiCertArn: 'arn:aws:acm:us-east-1:978251882572:certificate/bc13e38c-bc13-4a24-b9c4-6dce89d2b919',
 });

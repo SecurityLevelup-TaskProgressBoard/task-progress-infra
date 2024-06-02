@@ -6,12 +6,12 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { CacheCookieBehavior, CacheHeaderBehavior, CachePolicy, CacheQueryStringBehavior, Distribution, OriginAccessIdentity, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
-import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, OriginGroup, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { readFileSync } from 'fs';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as targets from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets';
-
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 export interface ExtendedStackProps extends cdk.StackProps {
   readonly keyPairName: string,
   readonly dbUsername: string,
@@ -226,6 +226,52 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
   });
 }
 
+const initializeApiCloudFrontDistribution = (scope: Construct, ec2: ec2.Instance, domainNames: string[], certArn: string) => {
+  const originAccessIdentity = new cloudfront.OriginAccessIdentity(scope, 'ApiOriginAccessIdentity', {
+    comment: 'CloudFront Origin Access Identity for API',
+  });
+
+  const origin = new HttpOrigin(`${ec2.instancePublicDnsName}`, {
+    protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+    httpPort: 5000,
+  });
+
+  const cachePolicy = new CachePolicy(scope, 'ApiCachePolicy', {
+    defaultTtl: cdk.Duration.seconds(0),
+    maxTtl: cdk.Duration.seconds(0),
+    minTtl: cdk.Duration.seconds(0),
+    enableAcceptEncodingBrotli: true,
+    enableAcceptEncodingGzip: true,
+    queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+    cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+    headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+    cachePolicyName: 'ApiCachePolicy',
+    comment: 'API Cache Policy',
+  });
+
+  const originRequestPolicy = new cloudfront.OriginRequestPolicy(scope, 'ApiOriginRequestPolicy', {
+    queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all(),
+    cookieBehavior: cloudfront.OriginRequestCookieBehavior.all(),
+    headerBehavior: cloudfront.OriginRequestHeaderBehavior.all(),
+    comment: 'API Origin Request Policy',
+  });
+
+  new cloudfront.Distribution(scope, 'ApiDistribution', {
+    domainNames: domainNames,
+    certificate: Certificate.fromCertificateArn(scope, 'apiWebCert', certArn),
+    defaultBehavior: {
+      origin: origin,
+      cachePolicy: cachePolicy,
+      compress: true,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      originRequestPolicy: {
+        originRequestPolicyId: originRequestPolicy.originRequestPolicyId,
+      }
+    },
+  });
+}
+
 const initializeCognito = (scope: Construct) => {
   const tpbUserPool = new cognito.UserPool(scope, 'tpbUserPool', {
     userPoolName: 'tpbUserPool',
@@ -346,8 +392,6 @@ export class TaskProgressInfraStack extends cdk.Stack {
 
     const ec2Instance = createEC2Instance(this, vpc, props.keyPairName);
 
-    // const abl = createLoadBalancer(this, props.apiCertArn);
-
     const s3Bucket = createS3Bucket(this);
 
     const db = createDBInstance(this, vpc, props.dbUsername, props.dbPort);
@@ -356,6 +400,7 @@ export class TaskProgressInfraStack extends cdk.Stack {
     initializeOidcProvider(this, props.orgName, props.repoName, this.account);
 
     initializeCloudFrontDistribution(this, s3Bucket, props.domainNames, props.certificateArn);
+    initializeApiCloudFrontDistribution(this, ec2Instance, props.domainNames, props.apiCertArn);
 
     initializeCognito(this);
   }
