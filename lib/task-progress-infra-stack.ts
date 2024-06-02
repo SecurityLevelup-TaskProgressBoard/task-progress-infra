@@ -207,8 +207,8 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
     cachePolicyName: 'tpbCachePolicy',
     comment: 'Custom cache policy for TPB CloudFront distribution',
     defaultTtl: cdk.Duration.minutes(10),
-    minTtl: cdk.Duration.minutes(10),
-    maxTtl: cdk.Duration.minutes(30),
+    minTtl: cdk.Duration.minutes(5),
+    maxTtl: cdk.Duration.minutes(10),
     cookieBehavior: CacheCookieBehavior.none(),
     headerBehavior: CacheHeaderBehavior.none(),
     queryStringBehavior: CacheQueryStringBehavior.none()
@@ -293,6 +293,10 @@ const initializeCognito = (scope: Construct) => {
     ],
     readAttributes: clientReadAttributes,
     writeAttributes: clientWriteAttributes,
+    oAuth: {
+      callbackUrls: ['https://taskify.phipson.co.za'],
+      logoutUrls: ['https://taskify.phipson.co.za/login.html']
+    }
   });
 }
 
