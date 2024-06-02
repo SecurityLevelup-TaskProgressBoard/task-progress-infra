@@ -227,7 +227,7 @@ const initializeCloudFrontDistribution = (scope: Construct, bucket: s3.Bucket, d
   });
 }
 
-const initializeCognito = (scope: Construct, loginDomain: string, certLoginArnArn: string) => {
+const initializeCognito = (scope: Construct) => {
   const tpbUserPool = new cognito.UserPool(scope, 'tpbUserPool', {
     userPoolName: 'tpbUserPool',
     selfSignUpEnabled: true,
@@ -299,13 +299,6 @@ const initializeCognito = (scope: Construct, loginDomain: string, certLoginArnAr
       logoutUrls: ['https://taskify.phipson.co.za/login.html']
     }
   });
-
-  const userDomain = new cognito.UserPoolDomain(scope, 'UserPoolDomain', {
-    userPool: tpbUserPool,
-    cognitoDomain: {
-      domainPrefix: 'login',
-    }
-  });
 }
 
 const createLoadBalancer = (scope: Construct, certArn: string, vpc: ec2.IVpc, instance: ec2.Instance) => {
@@ -365,6 +358,6 @@ export class TaskProgressInfraStack extends cdk.Stack {
 
     initializeCloudFrontDistribution(this, s3Bucket, props.domainNames, props.certificateArn);
 
-    initializeCognito(this, props.domainNames[1], props.loginCertArn);
+    initializeCognito(this);
   }
 }
