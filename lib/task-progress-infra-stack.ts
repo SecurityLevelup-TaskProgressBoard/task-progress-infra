@@ -254,8 +254,6 @@ const initializeApiCloudFrontDistribution = (scope: Construct, ec2: ec2.Instance
   });
 
   new cloudfront.Distribution(scope, 'ApiDistribution', {
-    domainNames: domainNames,
-    certificate: Certificate.fromCertificateArn(scope, 'apiWebCert', certArn),
     defaultBehavior: {
       origin: origin,
       cachePolicy: cachePolicy,
