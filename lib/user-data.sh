@@ -55,6 +55,9 @@ cat <<CONF | sudo tee /etc/systemd/system/server.conf > /dev/null
 ASPNETCORE_ENVIRONMENT=Production
 DB_CONNECTION_STRING="$connect_string"
 ASPNETCORE_URLS=http://0.0.0.0:5000
+Cognito_UserPoolId=eu-west-1_PxnrTbF9l
+Cognito_ClientId=66lc4rli2hjagrads5atsjbumg
+Cognito_Authority=https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_PxnrTbF9l
 CONF
 
 cat <<'SERVICE' | sudo tee /etc/systemd/system/server.service > /dev/null
