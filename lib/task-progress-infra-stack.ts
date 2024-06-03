@@ -335,8 +335,8 @@ const initializeCognito = (scope: Construct) => {
     readAttributes: clientReadAttributes,
     writeAttributes: clientWriteAttributes,
     oAuth: {
-      callbackUrls: ['https://taskify.phipson.co.za'],
-      logoutUrls: ['https://taskify.phipson.co.za/login.html']
+      callbackUrls: ['https://taskify.phipson.co.za', 'http://localhost:5500', 'https://localhost:5500'],
+      logoutUrls: ['https://taskify.phipson.co.za', 'http://localhost:5500', 'https://localhost:5500']
     }
   });
 }
